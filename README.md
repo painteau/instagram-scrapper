@@ -48,9 +48,10 @@ Successful response (`200 OK`):
 Example `curl` call (with API key enabled):
 
 ```bash
+# API_KEY should be provided securely by your environment or secret manager.
 curl -X POST http://localhost:5633/scrape \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: your_api_key" \
+  -H "X-API-Key: $API_KEY" \
   -d '{
     "url": "https://www.instagram.com/reel/SHORTCODE/"
   }'
@@ -176,6 +177,14 @@ Some behaviors can be tuned via environment variables:
   - Maximum age (in days) for media directories under `/data/instaloader`.
 - `MEDIA_CLEANUP_INTERVAL_SECONDS` (default: `3600`):
   - Minimum interval between automatic cleanup runs.
+
+🔒 **Security recommendations for secrets**
+
+- Do not commit `API_KEY` or other secrets to the repository.
+- Prefer secret management mechanisms (Docker/Kubernetes secrets, GitHub Actions secrets, cloud secret managers) over plain `.env` files.
+- Avoid passing secrets directly on the command line (they may end up in shell history); instead:
+  - export them in your environment (`export API_KEY=...`) or
+  - inject them via your orchestrator's secret mechanism.
 
 ## 📄 License
 

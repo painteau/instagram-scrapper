@@ -86,6 +86,16 @@ This file explains how to quickly understand and work with this repository.
   - Media is written under `/data/instaloader/{shortcode}/{shortcode}.mp4`.
   - When running in Docker, `/data` is intended to be a mounted volume from the host.
 
+**Security notes for environment variables and secrets**
+
+- `API_KEY` and other sensitive environment variables must never be committed to the repository.
+- Do not print or log secret values; existing logging already avoids logging `API_KEY` and should remain that way.
+- In production, rely on secret management provided by the platform:
+  - Docker/Kubernetes secrets,
+  - GitHub Actions/CI secrets,
+  - Cloud secret managers.
+- When giving examples, prefer using `$API_KEY` (coming from the environment) rather than hardcoding values.
+
 ## 5. How to run and test it quickly
 
 - Local run with Docker (host will see downloaded data in `./data`):
