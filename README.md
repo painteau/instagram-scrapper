@@ -2,6 +2,11 @@
 
 Minimal HTTP service to download Instagram posts (Reels or regular posts) via a JSON API, built with Flask and Instaloader and packaged as a Docker container.
 
+This Docker image is compatible with the following architectures:
+- `linux/amd64` (x86_64)
+- `linux/arm64` (Apple Silicon, Raspberry Pi 4/5)
+- `linux/arm/v7` (Raspberry Pi 3, etc.)
+
 ## Features
 
 - `/scrape` endpoint to download an Instagram post from its URL.

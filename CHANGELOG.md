@@ -12,6 +12,7 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - Example `curl` calls for `/scrape` and `/health` endpoints.
 - MIT license file.
 - Optional API key authentication via the `API_KEY` environment variable.
+- Multi-architecture Docker support: `linux/amd64`, `linux/arm64`, and `linux/arm/v7`.
 
 ### Changed
 
