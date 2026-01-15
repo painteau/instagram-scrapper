@@ -9,7 +9,7 @@ This file explains how to quickly understand and work with this repository.
   - Accept a POST `/scrape` with a JSON body containing an Instagram URL.
   - Extract the shortcode from the URL.
   - Use Instaloader to download the media.
-  - Return JSON with the shortcode, video path and caption.
+  - Return JSON with the shortcode, video path, caption, and a CDN URL.
   - Provide a simple healthcheck at `GET /health`.
 
 ## 2. Where the important code lives
@@ -22,9 +22,17 @@ This file explains how to quickly understand and work with this repository.
   - `scrape_post(shortcode)`:
     - Builds a `Post` from the shortcode.
     - Downloads the post into `/data/instaloader/{shortcode}`.
-    - Returns a JSON payload describing the downloaded media.
+    - Returns a JSON payload describing the downloaded media, including:
+      - `shortcode`
+      - `video` (path under `/data/instaloader`)
+      - `description` (caption)
+      - `cdn_url` (direct link to video/image on Instagram's CDN; temporary).
   - `extract_shortcode(url)`:
-    - Uses `urllib.parse` to parse the URL path.
+    - Uses `urllib.parse` to parse the URL.
+    - Enforces security constraints on the URL:
+      - `https` scheme only.
+      - Host must be `instagram.com` or `www.instagram.com`.
+      - URL length limited by `MAX_URL_LENGTH` (default 512).
     - Accepts paths like `/reel/<shortcode>` and `/p/<shortcode>`, with or without trailing slash and query params.
   - `check_api_key()`:
     - If `API_KEY` env var is not set, auth is disabled.
@@ -32,8 +40,11 @@ This file explains how to quickly understand and work with this repository.
   - `/scrape` route:
     - Optionally enforces API key auth.
     - Validates request body and URL format.
+    - Enforces:
+      - Maximum JSON body size (`MAX_JSON_BODY_BYTES`, default 4096 bytes).
+      - Per-IP in-memory rate limiting using `RATE_LIMIT_MAX_REQUESTS` and `RATE_LIMIT_WINDOW_SECONDS`.
     - Calls `scrape_post`.
-    - Maps Instaloader exceptions to meaningful HTTP status codes (404, 403, 429, 503, 502, 500).
+    - Maps Instaloader exceptions to meaningful HTTP status codes (404, 403, 429, 503, 502, 500), including special handling for Instagram's "Please wait a few minutes" message as a 429.
   - `/health` route:
     - Returns `"OK"` with HTTP 200.
 
@@ -54,11 +65,23 @@ This file explains how to quickly understand and work with this repository.
   - See [Dockerfile](./Dockerfile) for the runtime environment.
   - Uses `ghcr.io/painteau/python-ffmpeg-flask-gunicorn:latest` as base image.
   - Base image already contains `ffmpeg`, `flask`, and `gunicorn`; Dockerfile only installs `instaloader`.
-  - Runs the app via Gunicorn on `0.0.0.0:5633` using `app:app`.
+  - Runs the app via Gunicorn on `0.0.0.0:5633` using `app:app` with a 60 second timeout.
 - Environment variables:
   - `API_KEY` (optional):
     - If unset or empty: `/scrape` is open (no auth).
     - If set: `/scrape` requires `X-API-Key` header matching this value.
+  - `MAX_URL_LENGTH` (default: `512`):
+    - Maximum allowed length for the input URL.
+  - `MAX_JSON_BODY_BYTES` (default: `4096`):
+    - Maximum allowed size (in bytes) for the JSON request body.
+  - `RATE_LIMIT_WINDOW_SECONDS` (default: `60`):
+    - Size of the rate limiting window.
+  - `RATE_LIMIT_MAX_REQUESTS` (default: `30`):
+    - Maximum number of requests per IP in each rate limiting window.
+  - `MAX_MEDIA_AGE_DAYS` (default: `7`):
+    - Maximum age for media directories under `/data/instaloader` before they are removed.
+  - `MEDIA_CLEANUP_INTERVAL_SECONDS` (default: `3600`):
+    - Minimum interval between automatic media cleanup runs.
 - Storage:
   - Media is written under `/data/instaloader/{shortcode}/{shortcode}.mp4`.
   - When running in Docker, `/data` is intended to be a mounted volume from the host.
