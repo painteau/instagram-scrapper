@@ -135,7 +135,7 @@ Downloaded files will then be available on your machine under `./data/instaloade
 
 ## Deployment and CI/CD
 
-- Dockerfile based on `python:3.14-slim`, with minimal dependencies installed (`instaloader`, `flask`, `gunicorn`, `ffmpeg`).
+- Dockerfile based on `ghcr.io/painteau/python-ffmpeg-flask-gunicorn:latest`, with `ffmpeg`, `flask` and `gunicorn` pre-installed (only `instaloader` is added on top).
 - Application served by `gunicorn` on port `5633`.
 - GitHub Actions workflow builds and publishes a multi-architecture Docker image (`linux/amd64`, `linux/arm64`) to GitHub Container Registry and signs the image with `cosign`.
 

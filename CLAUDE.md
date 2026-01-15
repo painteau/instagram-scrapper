@@ -52,8 +52,8 @@ This file explains how to quickly understand and work with this repository.
 
 - Docker:
   - See [Dockerfile](./Dockerfile) for the runtime environment.
-  - Uses `python:3.14-slim` as base image.
-  - Installs `instaloader`, `flask`, `gunicorn`, `ffmpeg`.
+  - Uses `ghcr.io/painteau/python-ffmpeg-flask-gunicorn:latest` as base image.
+  - Base image already contains `ffmpeg`, `flask`, and `gunicorn`; Dockerfile only installs `instaloader`.
   - Runs the app via Gunicorn on `0.0.0.0:5633` using `app:app`.
 - Environment variables:
   - `API_KEY` (optional):
@@ -120,4 +120,3 @@ To build a mental model of the project:
 - Keep the code simple and small:
   - This service is intentionally minimal; avoid unnecessary abstractions.
   - Use existing patterns in `app.py` when adding new behavior.
-

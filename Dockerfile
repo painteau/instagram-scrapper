@@ -1,4 +1,4 @@
-FROM ghcr.io/painteau/python-ffmpeg:latest
+FROM ghcr.io/painteau/python-ffmpeg-flask-gunicorn:latest
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
