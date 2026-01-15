@@ -50,7 +50,8 @@ def scrape_post(shortcode):
     return jsonify({
         "shortcode": shortcode,
         "video": f"/data/instaloader/{shortcode}/{shortcode}.mp4",
-        "description": post.caption or ""
+        "description": post.caption or "",
+        "cdn_url": post.video_url if post.is_video else post.url
     })
 
 
