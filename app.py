@@ -95,6 +95,10 @@ def scrape():
         logger.warning(f"Rate limit reached while scraping {shortcode}: {e}")
         return jsonify({"error": "Rate limit reached when contacting Instagram"}), 429
     except ConnectionException as e:
+        message = str(e)
+        if "Please wait a few minutes before you try again" in message:
+            logger.warning(f"Rate limit (Please wait) while scraping {shortcode}: {e}")
+            return jsonify({"error": "Rate limit reached when contacting Instagram"}), 429
         logger.error(f"Connection error while scraping post {shortcode}: {e}")
         return jsonify({"error": "Unable to reach Instagram"}), 503
     except InstaloaderException as e:
