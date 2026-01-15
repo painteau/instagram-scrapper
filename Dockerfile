@@ -8,4 +8,4 @@ COPY app.py .
 
 USER 1000
 
-CMD ["gunicorn","--bind","0.0.0.0:5633","--access-logfile","-","--error-logfile","-","app:app"]
+CMD ["gunicorn","--bind","0.0.0.0:5633","--access-logfile","-","--error-logfile","-","--timeout","60","app:app"]

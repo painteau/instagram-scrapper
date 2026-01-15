@@ -93,13 +93,21 @@ The shortcode is extracted from the URL path. Supported formats include, for exa
 
 Other variants can be supported as long as the path follows the general pattern `/<reel|p>/<shortcode>[...]`.
 
-## Error handling with Instaloader
+Additional safety checks are applied to the input URL:
+
+- only `https` URLs are accepted,
+- the host must be `instagram.com` or `www.instagram.com`,
+- the URL length is limited (default: 512 characters).
+
+Any URL that does not pass these checks is rejected with a `400 Bad Request` and `"Invalid URL format"`.
+
+## Error handling and rate limiting
 
 Errors raised by Instaloader (private posts, removed content, rate limiting, network issues, etc.) are mapped to HTTP status codes where possible:
 
 - not found → `404 Not Found`,
 - forbidden / private / login required → `403 Forbidden`,
-- rate limit reached → `429 Too Many Requests`,
+- rate limit reached or "Please wait a few minutes before you try again" → `429 Too Many Requests`,
 - network / connection issues → `503 Service Unavailable`,
 - other Instaloader errors → `502 Bad Gateway`,
 - unexpected errors in the app → `500 Internal Server Error`.
@@ -112,13 +120,23 @@ The JSON error payload follows the structure:
 }
 ```
 
-## File storage and `/data` volume
+## Request limits, rate limiting, and file storage
+
+- Maximum JSON body size:
+  - Requests larger than `MAX_JSON_BODY_BYTES` (default: 4096 bytes) are rejected with `413 Payload Too Large`.
+- Per-IP rate limiting:
+  - By default, a simple in-memory rate limiter limits each IP to `RATE_LIMIT_MAX_REQUESTS` requests per `RATE_LIMIT_WINDOW_SECONDS` (defaults: 30 requests per 60 seconds).
+  - Exceeding the limit returns `429 Too Many Requests`.
 
 Downloaded files are stored inside the container under:
 
 - `/data/instaloader/{shortcode}/{shortcode}.mp4`
 
 The `/data` path is meant to be mounted as a volume when running the application in Docker, so that media files are persisted on the host.
+
+Old media is automatically cleaned up:
+
+- directories under `/data/instaloader` older than `MAX_MEDIA_AGE_DAYS` (default: 7 days) are removed periodically when new downloads occur.
 
 Local run example:
 
@@ -133,13 +151,31 @@ docker run --rm \
 
 Downloaded files will then be available on your machine under `./data/instaloader`.
 
-> Note: for now, the download path is fixed to `/data/instaloader`. A possible improvement would be to make this path configurable via an environment variable.
-
 ## Deployment and CI/CD
 
 - Dockerfile based on `ghcr.io/painteau/python-ffmpeg-flask-gunicorn:latest`, with `ffmpeg`, `flask` and `gunicorn` pre-installed (only `instaloader` is added on top).
-- Application served by `gunicorn` on port `5633`.
-- GitHub Actions workflow builds and publishes a multi-architecture Docker image (`linux/amd64`, `linux/arm64`) to GitHub Container Registry and signs the image with `cosign`.
+- Application served by `gunicorn` on port `5633` with a 60 second request timeout.
+- GitHub Actions workflow builds and publishes a multi-architecture Docker image (`linux/amd64`, `linux/arm64`, `linux/arm/v7`) to GitHub Container Registry and signs the image with `cosign`.
+
+## Configuration via environment variables
+
+Some behaviors can be tuned via environment variables:
+
+- `API_KEY`:
+  - If unset or empty: `/scrape` is open (no auth).
+  - If set: `/scrape` requires `X-API-Key` header matching this value.
+- `MAX_URL_LENGTH` (default: `2048`):
+  - Maximum length of the input URL.
+- `MAX_JSON_BODY_BYTES` (default: `4096`):
+  - Maximum size of the JSON request body.
+- `RATE_LIMIT_WINDOW_SECONDS` (default: `60`):
+  - Rate limiting window duration, in seconds.
+- `RATE_LIMIT_MAX_REQUESTS` (default: `30`):
+  - Maximum number of requests per IP in each rate limiting window.
+- `MAX_MEDIA_AGE_DAYS` (default: `7`):
+  - Maximum age (in days) for media directories under `/data/instaloader`.
+- `MEDIA_CLEANUP_INTERVAL_SECONDS` (default: `3600`):
+  - Minimum interval between automatic cleanup runs.
 
 ## License
 
