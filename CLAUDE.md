@@ -27,6 +27,7 @@ This file explains how to quickly understand and work with this repository.
       - `video` (path under `/data/instaloader`)
       - `description` (caption)
       - `cdn_url` (direct link to video/image on Instagram's CDN; temporary).
+      - `original_url` (the URL that was sent to the API).
   - `extract_shortcode(url)`:
     - Uses `urllib.parse` to parse the URL.
     - Enforces security constraints on the URL:

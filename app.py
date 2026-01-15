@@ -103,7 +103,7 @@ def cleanup_old_media(now=None):
             except Exception as e:
                 logger.error(f"Failed to remove old media directory {path}: {e}")
 
-def scrape_post(shortcode):
+def scrape_post(shortcode, original_url):
     post = Post.from_shortcode(L.context, shortcode)
     L.download_post(post, target=shortcode)
 
@@ -115,12 +115,13 @@ def scrape_post(shortcode):
         cleanup_old_media(now=now)
         last_media_cleanup = now
 
-    return jsonify({
+    return {
         "shortcode": shortcode,
         "video": f"/data/instaloader/{shortcode}/{shortcode}.mp4",
         "description": post.caption or "",
-        "cdn_url": post.video_url if post.is_video else post.url
-    })
+        "cdn_url": post.video_url if post.is_video else post.url,
+        "original_url": original_url
+    }
 
 
 def extract_shortcode(url):
@@ -170,7 +171,8 @@ def scrape():
     
     logger.info(f"Scraping Instagram post with shortcode: {shortcode}")
     try:
-        return scrape_post(shortcode)
+        payload = scrape_post(shortcode, url)
+        return jsonify(payload)
     except QueryReturnedNotFoundException as e:
         logger.warning(f"Post not found for shortcode {shortcode}: {e}")
         return jsonify({"error": "Post not found"}), 404

@@ -16,7 +16,8 @@ This Docker image is compatible with the following architectures:
   - the `shortcode`,
   - the path to the downloaded video file,
   - the post description (caption),
-  - the `cdn_url` (direct link to the video/image on Instagram's CDN).
+  - the `cdn_url` (direct link to the video/image on Instagram's CDN),
+  - the `original_url` (the URL that was sent to the API).
 - `/health` endpoint to check the service status.
 
 ## 🔌 API
@@ -41,7 +42,8 @@ Successful response (`200 OK`):
   "shortcode": "SHORTCODE",
   "video": "/data/instaloader/SHORTCODE/SHORTCODE.mp4",
   "description": "Post caption or empty string",
-  "cdn_url": "https://scontent-..."
+  "cdn_url": "https://scontent-...",
+  "original_url": "https://www.instagram.com/reel/SHORTCODE/"
 }
 ```
 
