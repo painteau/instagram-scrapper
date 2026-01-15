@@ -1,4 +1,4 @@
-# instagram-scrapper
+# 📸 instagram-scrapper
 
 Minimal HTTP service to download Instagram posts (Reels or regular posts) via a JSON API, built with Flask and Instaloader and packaged as a Docker container.
 
@@ -7,7 +7,7 @@ This Docker image is compatible with the following architectures:
 - `linux/arm64` (Apple Silicon, Raspberry Pi 4/5)
 - `linux/arm/v7` (Raspberry Pi 3, etc.)
 
-## Features
+## ✨ Features
 
 - `/scrape` endpoint to download an Instagram post from its URL.
 - Automatic extraction of the post *shortcode* from the URL.
@@ -19,7 +19,7 @@ This Docker image is compatible with the following architectures:
   - the `cdn_url` (direct link to the video/image on Instagram's CDN).
 - `/health` endpoint to check the service status.
 
-## API
+## 🔌 API
 
 ### `POST /scrape`
 
@@ -82,7 +82,7 @@ curl http://localhost:5633/health
 - Response body: `OK`
 - Status code: `200`
 
-## Instagram URL handling
+## 🔗 Instagram URL handling
 
 The shortcode is extracted from the URL path. Supported formats include, for example:
 
@@ -101,7 +101,7 @@ Additional safety checks are applied to the input URL:
 
 Any URL that does not pass these checks is rejected with a `400 Bad Request` and `"Invalid URL format"`.
 
-## Error handling and rate limiting
+## ⚠️ Error handling and rate limiting
 
 Errors raised by Instaloader (private posts, removed content, rate limiting, network issues, etc.) are mapped to HTTP status codes where possible:
 
@@ -120,7 +120,7 @@ The JSON error payload follows the structure:
 }
 ```
 
-## Request limits, rate limiting, and file storage
+## 📦 Request limits, rate limiting, and file storage
 
 - Maximum JSON body size:
   - Requests larger than `MAX_JSON_BODY_BYTES` (default: 4096 bytes) are rejected with `413 Payload Too Large`.
@@ -151,20 +151,20 @@ docker run --rm \
 
 Downloaded files will then be available on your machine under `./data/instaloader`.
 
-## Deployment and CI/CD
+## 🚀 Deployment and CI/CD
 
 - Dockerfile based on `ghcr.io/painteau/python-ffmpeg-flask-gunicorn:latest`, with `ffmpeg`, `flask` and `gunicorn` pre-installed (only `instaloader` is added on top).
 - Application served by `gunicorn` on port `5633` with a 60 second request timeout.
 - GitHub Actions workflow builds and publishes a multi-architecture Docker image (`linux/amd64`, `linux/arm64`, `linux/arm/v7`) to GitHub Container Registry and signs the image with `cosign`.
 
-## Configuration via environment variables
+## ⚙️ Configuration via environment variables
 
 Some behaviors can be tuned via environment variables:
 
 - `API_KEY`:
   - If unset or empty: `/scrape` is open (no auth).
   - If set: `/scrape` requires `X-API-Key` header matching this value.
-- `MAX_URL_LENGTH` (default: `2048`):
+- `MAX_URL_LENGTH` (default: `512`):
   - Maximum length of the input URL.
 - `MAX_JSON_BODY_BYTES` (default: `4096`):
   - Maximum size of the JSON request body.
@@ -177,7 +177,7 @@ Some behaviors can be tuned via environment variables:
 - `MEDIA_CLEANUP_INTERVAL_SECONDS` (default: `3600`):
   - Minimum interval between automatic cleanup runs.
 
-## License
+## 📄 License
 
 This project is distributed under the MIT License. See the `LICENSE` file for details.
 
