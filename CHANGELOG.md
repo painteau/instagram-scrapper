@@ -15,7 +15,7 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 
 ### Changed
 
-- Base Docker image updated to `python:3.14-slim`.
+- Base Docker image updated to `ghcr.io/painteau/python-ffmpeg:latest` (optimized with pre-installed ffmpeg/flask).
 - Shortcode extraction improved to support more Instagram URL formats.
 - Error handling with Instaloader refined with appropriate HTTP status codes (404, 403, 429, 503, 502).
 

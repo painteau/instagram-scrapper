@@ -1,11 +1,8 @@
-FROM python:3.14-slim
+FROM ghcr.io/painteau/python-ffmpeg:latest
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg \
-    && pip install instaloader flask gunicorn \
-    && rm -rf /var/lib/apt/lists/*
+RUN pip install instaloader
 
 COPY app.py .
 
