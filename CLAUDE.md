@@ -79,6 +79,10 @@ This file explains how to quickly understand and work with this repository.
     - Size of the rate limiting window.
   - `RATE_LIMIT_MAX_REQUESTS` (default: `30`):
     - Maximum number of requests per IP in each rate limiting window.
+  - `RATE_LIMIT_MAX_IPS` (default: `10000`):
+    - Cap on number of IPs tracked in memory; oldest entry evicted when reached.
+  - `TRUST_PROXY` (default: unset):
+    - Set to `1` or `true` to trust `X-Forwarded-For` for client IP. Only enable behind a trusted proxy.
   - `MAX_MEDIA_AGE_DAYS` (default: `7`):
     - Maximum age for media directories under `/data/instaloader` before they are removed.
   - `MEDIA_CLEANUP_INTERVAL_SECONDS` (default: `3600`):

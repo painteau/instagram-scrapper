@@ -3,7 +3,7 @@ import sys
 import time
 import shutil
 import logging
-from collections import deque
+from collections import deque, OrderedDict
 from urllib.parse import urlparse
 from flask import Flask, request, jsonify
 from instaloader import Instaloader, Post
@@ -18,17 +18,34 @@ from instaloader.exceptions import (
 )
 
 API_KEY = os.getenv("API_KEY") or ""
+TRUST_PROXY = os.getenv("TRUST_PROXY", "").lower() in ("1", "true", "yes")
 MAX_URL_LENGTH = int(os.getenv("MAX_URL_LENGTH", "512"))
 ALLOWED_URL_SCHEMES = ("https",)
 ALLOWED_URL_HOSTS = ("www.instagram.com", "instagram.com")
 MAX_JSON_BODY_BYTES = int(os.getenv("MAX_JSON_BODY_BYTES", "4096"))
 RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
 RATE_LIMIT_MAX_REQUESTS = int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "30"))
+RATE_LIMIT_MAX_IPS = int(os.getenv("RATE_LIMIT_MAX_IPS", "10000"))
 MAX_MEDIA_AGE_DAYS = int(os.getenv("MAX_MEDIA_AGE_DAYS", "7"))
 MEDIA_CLEANUP_INTERVAL_SECONDS = int(os.getenv("MEDIA_CLEANUP_INTERVAL_SECONDS", "3600"))
 
-rate_limit_store = {}
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s %(message)s",
+    handlers=[logging.StreamHandler(sys.stderr)],
+    force=True
+)
+logger = logging.getLogger(__name__)
+app = Flask(__name__)
+
+rate_limit_store: OrderedDict = OrderedDict()
 last_media_cleanup = 0.0
+
+L = Instaloader(
+    dirname_pattern="/data/instaloader/{shortcode}",
+    filename_pattern="{shortcode}",
+    download_comments=False,
+)
 
 
 def check_api_key():
@@ -40,36 +57,25 @@ def check_api_key():
         return jsonify({"error": "Unauthorized"}), 401
     return None
 
-logger = logging.getLogger(__name__)
-app = Flask(__name__)
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s %(levelname)s %(message)s",
-    handlers=[logging.StreamHandler(sys.stderr)],
-    force=True
-)
-
-L = Instaloader(
-        dirname_pattern="/data/instaloader/{shortcode}", 
-        filename_pattern="{shortcode}", 
-        download_comments=False)
-
 
 def get_client_ip():
-    xff = request.headers.get("X-Forwarded-For")
-    if xff:
-        return xff.split(",")[0].strip()
+    if TRUST_PROXY:
+        xff = request.headers.get("X-Forwarded-For")
+        if xff:
+            return xff.split(",")[0].strip()
     return request.remote_addr or "unknown"
 
 
 def check_rate_limit(ip):
     now = time.time()
     window_start = now - RATE_LIMIT_WINDOW_SECONDS
-    bucket = rate_limit_store.get(ip)
-    if bucket is None:
-        bucket = deque()
-        rate_limit_store[ip] = bucket
+    if ip not in rate_limit_store:
+        if len(rate_limit_store) >= RATE_LIMIT_MAX_IPS:
+            rate_limit_store.popitem(last=False)
+        rate_limit_store[ip] = deque()
+    else:
+        rate_limit_store.move_to_end(ip)
+    bucket = rate_limit_store[ip]
     while bucket and bucket[0] < window_start:
         bucket.popleft()
     if len(bucket) >= RATE_LIMIT_MAX_REQUESTS:
@@ -96,12 +102,14 @@ def cleanup_old_media(now=None):
             stat = os.stat(path)
         except OSError:
             continue
-        if stat.st_mtime < cutoff:
+        age = max(stat.st_mtime, stat.st_ctime)
+        if age < cutoff:
             try:
                 shutil.rmtree(path)
                 logger.info(f"Removed old media directory: {path}")
             except Exception as e:
                 logger.error(f"Failed to remove old media directory {path}: {e}")
+
 
 def scrape_post(shortcode, original_url):
     post = Post.from_shortcode(L.context, shortcode)
@@ -117,10 +125,9 @@ def scrape_post(shortcode, original_url):
 
     return {
         "shortcode": shortcode,
-        "video": f"/data/instaloader/{shortcode}/{shortcode}.mp4",
         "description": post.caption or "",
         "cdn_url": post.video_url if post.is_video else post.url,
-        "original_url": original_url
+        "original_url": original_url,
     }
 
 
@@ -138,6 +145,7 @@ def extract_shortcode(url):
     if len(segments) >= 2 and segments[0] in ("reel", "p"):
         return segments[1]
     raise ValueError("Invalid URL format")
+
 
 @app.route("/scrape", methods=["POST"])
 def scrape():
@@ -157,7 +165,11 @@ def scrape():
     if auth_error is not None:
         return auth_error
 
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not data or not isinstance(data, dict):
+        logger.warning("Invalid or missing JSON body")
+        return jsonify({"error": "Invalid JSON body"}), 400
+
     url = data.get("url")
     if not url:
         logger.warning("Missing 'url' in request.")
@@ -168,7 +180,7 @@ def scrape():
     except ValueError:
         logger.info(f"Error: Could not extract shortcode from URL '{url}'")
         return jsonify({"error": "Invalid URL format"}), 400
-    
+
     logger.info(f"Scraping Instagram post with shortcode: {shortcode}")
     try:
         payload = scrape_post(shortcode, url)
@@ -196,10 +208,12 @@ def scrape():
         logger.error(f"Error scraping post {shortcode}: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
+
 @app.route("/health", methods=["GET"])
 def health():
     logger.debug("Health check called.")
     return "OK", 200
+
 
 if __name__ == "__main__":
     logger.info("Starting Instaloader Flask app...")

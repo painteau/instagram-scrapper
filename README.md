@@ -14,7 +14,6 @@ This Docker image is compatible with the following architectures:
 - Media download handled by `instaloader`.
 - JSON response containing:
   - the `shortcode`,
-  - the path to the downloaded video file,
   - the post description (caption),
   - the `cdn_url` (direct link to the video/image on Instagram's CDN),
   - the `original_url` (the URL that was sent to the API).
@@ -40,7 +39,6 @@ Successful response (`200 OK`):
 ```json
 {
   "shortcode": "SHORTCODE",
-  "video": "/data/instaloader/SHORTCODE/SHORTCODE.mp4",
   "description": "Post caption or empty string",
   "cdn_url": "https://scontent-...",
   "original_url": "https://www.instagram.com/reel/SHORTCODE/"
@@ -130,6 +128,7 @@ The JSON error payload follows the structure:
 - Per-IP rate limiting:
   - By default, a simple in-memory rate limiter limits each IP to `RATE_LIMIT_MAX_REQUESTS` requests per `RATE_LIMIT_WINDOW_SECONDS` (defaults: 30 requests per 60 seconds).
   - Exceeding the limit returns `429 Too Many Requests`.
+  - The store is capped at `RATE_LIMIT_MAX_IPS` entries (default: 10 000) — oldest IPs are evicted when the cap is reached.
 
 Downloaded files are stored inside the container under:
 
@@ -175,6 +174,10 @@ Some behaviors can be tuned via environment variables:
   - Rate limiting window duration, in seconds.
 - `RATE_LIMIT_MAX_REQUESTS` (default: `30`):
   - Maximum number of requests per IP in each rate limiting window.
+- `RATE_LIMIT_MAX_IPS` (default: `10000`):
+  - Maximum number of IPs tracked in memory; oldest entry evicted when reached.
+- `TRUST_PROXY` (default: unset):
+  - Set to `1` or `true` to read the real client IP from `X-Forwarded-For`. Enable only when behind a trusted reverse proxy.
 - `MAX_MEDIA_AGE_DAYS` (default: `7`):
   - Maximum age (in days) for media directories under `/data/instaloader`.
 - `MEDIA_CLEANUP_INTERVAL_SECONDS` (default: `3600`):
