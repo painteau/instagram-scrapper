@@ -70,6 +70,22 @@ Main status codes:
 - `502 Bad Gateway`: unexpected error while contacting Instagram via Instaloader.
 - `503 Service Unavailable`: Instagram could not be reached.
 
+### `GET /download/<shortcode>`
+
+Download the media file previously scraped for a given shortcode.
+
+Requires `X-API-Key` header if `API_KEY` is set.
+
+- Returns the file as an attachment (`.mp4`, `.jpg`, or `.png`).
+- `400` if the shortcode is invalid.
+- `404` if no media exists for that shortcode.
+
+Example:
+
+```bash
+curl -OJ -H "X-API-Key: $API_KEY" http://localhost:5633/download/SHORTCODE
+```
+
 ### `GET /health`
 
 Used to check that the application is running.

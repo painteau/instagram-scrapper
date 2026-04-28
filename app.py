@@ -1,11 +1,12 @@
 import os
+import re
 import sys
 import time
 import shutil
 import logging
 from collections import deque, OrderedDict
 from urllib.parse import urlparse
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from instaloader import Instaloader, Post
 from instaloader.exceptions import (
     InstaloaderException,
@@ -207,6 +208,28 @@ def scrape():
     except Exception as e:
         logger.error(f"Error scraping post {shortcode}: {e}")
         return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/download/<shortcode>", methods=["GET"])
+def download(shortcode):
+    auth_error = check_api_key()
+    if auth_error is not None:
+        return auth_error
+
+    if not shortcode or not re.match(r'^[A-Za-z0-9_-]+$', shortcode):
+        return jsonify({"error": "Invalid shortcode"}), 400
+
+    base = f"/data/instaloader/{shortcode}"
+    if not os.path.isdir(base):
+        return jsonify({"error": "Not found"}), 404
+
+    # Cherche mp4 d'abord, puis jpg/png
+    for ext in (".mp4", ".jpg", ".jpeg", ".png"):
+        candidate = os.path.join(base, shortcode + ext)
+        if os.path.isfile(candidate):
+            return send_file(candidate, as_attachment=True, download_name=shortcode + ext)
+
+    return jsonify({"error": "Media file not found"}), 404
 
 
 @app.route("/health", methods=["GET"])
